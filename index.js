@@ -4,7 +4,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
 
 // Configuración de autenticación básica
-const auth = { username: "user", password: "pass" };
+const auth = { username: "usuario", password: "contraseña" };
 
 app.use((req, res, next) => {
     const authHeader = req.headers.authorization;
@@ -16,11 +16,25 @@ app.use((req, res, next) => {
     next();
 });
 
-// Configurar proxy a una URL de destino
-app.use('/', createProxyMiddleware({
-    target: 'https://example.com', // Cambia esto por la URL que quieras redirigir
-    changeOrigin: true
-}));
+// Middleware para redirigir todas las solicitudes a través del proxy
+app.use('/', (req, res, next) => {
+    // Obtén la URL de destino del encabezado de la solicitud
+    const destinationUrl = req.headers['target_url'];
+    
+    if (!destinationUrl) {
+        return res.status(400).send('Missing "target_url" header.');
+    }
 
-// Iniciar el servidor
-app.listen(3000, () => console.log('Proxy funcionando en puerto 3000'));
+    // Configura el middleware de proxy para redirigir las solicitudes a la URL de destino
+    createProxyMiddleware({
+        target: destinationUrl,   // La URL de destino de la solicitud
+        changeOrigin: true,       // Cambia el origen del host
+        secure: false,            // Permite conexiones no seguras (HTTP)
+    })(req, res, next);
+});
+
+// Iniciar el servidor proxy
+const PORT = 3000;
+app.listen(PORT, () => {
+    console.log(`Proxy en funcionamiento en puerto ${PORT}`);
+});
